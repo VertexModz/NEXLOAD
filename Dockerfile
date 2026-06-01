@@ -1,6 +1,5 @@
 FROM python:3.11-slim
 
-# ติดตั้ง ffmpeg (จำเป็นสำหรับ merge video+audio)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ffmpeg && \
     apt-get clean && \
@@ -11,14 +10,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY nexload_web.py .
+COPY . .
 
-# คัดลอก cookies.txt ถ้ามี (ไม่บังคับ)
-COPY cookies.tx[t] ./cookies.txt
-
-# สร้างโฟลเดอร์บันทึกวิดีโอ
 RUN mkdir -p nexload_video
 
-EXPOSE 8888
+EXPOSE 8080
 
 CMD ["python", "nexload_web.py"]
