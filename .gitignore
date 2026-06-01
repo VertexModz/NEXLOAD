@@ -1,0 +1,9 @@
+nexload_video/
+nexload_config.json
+nexload_history.json
+nexload_queue.json
+nexload_stats.json
+nexload.log
+__pycache__/
+*.pyc
+.env
