@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY nexload_web.py .
 
+# คัดลอก cookies.txt ถ้ามี (ไม่บังคับ)
+COPY cookies.tx[t] ./cookies.txt
+
 # สร้างโฟลเดอร์บันทึกวิดีโอ
 RUN mkdir -p nexload_video
 

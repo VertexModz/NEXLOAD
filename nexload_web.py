@@ -476,33 +476,6 @@ def api_queue_run():
 def api_queue_status():
     return jsonify(_auto_queue_status)
 
-@app.route("/api/history", methods=["GET"])
-def api_history():
-    return jsonify(list(reversed(load_history()[-50:])))
-
-@app.route("/api/history", methods=["DELETE"])
-def api_history_clear():
-    save_history([]); return jsonify({"ok":True})
-
-@app.route("/api/stats", methods=["GET"])
-def api_stats():
-    s = load_stats()
-    avg = s["total_bytes"]/s["total_seconds"] if s["total_seconds"] > 0 else 0
-    total = s["total_downloads"]; failed = s["failed"]
-    rate = int(total/(total+failed)*100) if (total+failed) > 0 else 0
-    return jsonify({**s, "avg_speed": fmt_size(avg)+"/s",
-                    "total_gb": f"{s['total_bytes']/(1024**3):.2f} GB",
-                    "success_rate": rate})
-
-@app.route("/api/config", methods=["GET"])
-def api_config_get():
-    return jsonify(load_cfg())
-
-@app.route("/api/config", methods=["POST"])
-def api_config_set():
-    cfg = load_cfg(); cfg.update(request.json); save_cfg(cfg)
-    return jsonify({"ok":True})
-
 @app.route("/api/files/<path:name>/download")
 def api_file_download(name):
     cfg = load_cfg()
@@ -770,15 +743,6 @@ textarea.url-input{resize:vertical;min-height:80px;font-size:.78rem;line-height:
     <button class="nav-btn" onclick="switchPanel('queue',this)">
       <span class="nav-icon">📥</span>คิว
     </button>
-    <button class="nav-btn" onclick="switchPanel('history',this)">
-      <span class="nav-icon">📋</span>ประวัติ
-    </button>
-    <button class="nav-btn" onclick="switchPanel('stats',this)">
-      <span class="nav-icon">📊</span>สถิติ
-    </button>
-    <button class="nav-btn" onclick="switchPanel('settings',this)">
-      <span class="nav-icon">⚙️</span>ตั้งค่า
-    </button>
   </nav>
 
   <!-- แผง: ดาวน์โหลด -->
@@ -892,58 +856,6 @@ textarea.url-input{resize:vertical;min-height:80px;font-size:.78rem;line-height:
     </div>
   </div>
 
-  <!-- แผง: ประวัติ -->
-  <div class="panel" id="panel-history">
-    <div class="card">
-      <div class="section-title">📋 ประวัติการดาวน์โหลด</div>
-      <div style="margin-bottom:12px">
-        <button class="btn btn-rd" onclick="clearHistory()">🗑 ล้างประวัติทั้งหมด</button>
-      </div>
-      <div id="historyList"></div>
-    </div>
-  </div>
-
-  <!-- แผง: สถิติ -->
-  <div class="panel" id="panel-stats">
-    <div class="card">
-      <div class="section-title">📊 สถิติการใช้งาน</div>
-      <div class="stats-grid" id="statsGrid"></div>
-      <div class="rate-bar-wrap" style="margin-top:12px">
-        <div style="font-family:'Noto Sans Thai',sans-serif;font-size:.7rem;color:#4a7a9a">อัตราความสำเร็จ</div>
-        <div class="rate-bar"><div class="rate-fill" id="rateFill" style="width:0%"></div></div>
-        <div id="rateLabel" style="font-family:'Noto Sans Thai',sans-serif;font-size:.75rem;color:var(--gr)"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- แผง: ตั้งค่า -->
-  <div class="panel" id="panel-settings">
-    <div class="card">
-      <div class="section-title">⚙️ การตั้งค่า</div>
-      <div class="settings-grid" id="settingsGrid"></div>
-      <div style="margin-top:16px">
-        <button class="btn btn-gr" onclick="saveSettings()">💾 บันทึกการตั้งค่า</button>
-      </div>
-    </div>
-    <div class="card">
-      <div class="section-title">🔧 เครื่องมือระบบ</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
-        <button class="btn btn-cy" onclick="updateYtdlp()" id="btnUpdate">⬆️ อัปเดต yt-dlp</button>
-        <span style="font-family:'Share Tech Mono',monospace;font-size:.7rem;color:#4a7a9a" id="ytdlpVer">กำลังตรวจสอบ...</span>
-      </div>
-      <div id="updateStatus" style="margin-top:10px;font-family:'Noto Sans Thai',sans-serif;font-size:.78rem"></div>
-      <div style="margin-top:16px;border-top:1px solid #1a3a55;padding-top:12px">
-        <div style="font-family:'Noto Sans Thai',sans-serif;font-size:.72rem;color:#4a7a9a;margin-bottom:6px">💾 พื้นที่ดิสก์</div>
-        <div id="diskInfo" style="font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--cy)">กำลังโหลด...</div>
-        <div class="bar-wrap" style="margin-top:8px;height:6px"><div class="bar-fill" id="diskBar" style="width:0%;background:linear-gradient(90deg,var(--gr),var(--cy))"></div></div>
-      </div>
-      <div style="margin-top:16px;border-top:1px solid #1a3a55;padding-top:12px">
-        <div style="font-family:'Noto Sans Thai',sans-serif;font-size:.72rem;color:#4a7a9a;margin-bottom:6px">📋 Log ล่าสุด</div>
-        <a href="/api/log" target="_blank" class="btn btn-dim" style="font-size:.65rem;padding:6px 12px;text-decoration:none">📄 เปิดไฟล์ nexload.log</a>
-      </div>
-    </div>
-  </div>
-
 </div>
 <div class="toast-wrap" id="toastWrap"></div>
 
@@ -975,9 +887,6 @@ function switchPanel(name, btn){
   document.getElementById('panel-'+name).classList.add('active');
   if(btn) btn.classList.add('active');
   if(name==='queue') loadQueue();
-  if(name==='history') loadHistory();
-  if(name==='stats') loadStats();
-  if(name==='settings') { loadSettings(); loadYtdlpVersion(); loadDiskInfo(); }
 }
 
 // ═══════════════════════════════════════════
@@ -1293,173 +1202,6 @@ function selectResult(url, title){
   document.getElementById('dlUrl').value=url;
   fetchInfo();
   toast('เลือกวิดีโอแล้ว กำลังโหลดข้อมูล...');
-}
-
-// ═══════════════════════════════════════════
-//  ประวัติ
-// ═══════════════════════════════════════════
-async function loadHistory(){
-  const res = await fetch('/api/history');
-  const h = await res.json();
-  const el = document.getElementById('historyList');
-  if(!h.length){ el.innerHTML='<div class="empty"><div class="empty-icon">📭</div>ยังไม่มีประวัติ</div>'; return; }
-  el.innerHTML = h.map(item=>`
-    <div class="list-item">
-      <div class="item-icon">${item.status==='✔'?'✅':'❌'}</div>
-      <div class="item-info">
-        <div class="item-title">${esc(item.title)}</div>
-        <div class="item-meta">${item.date} | ${(item.ext||'').toUpperCase()} | ${fmtSz(item.size||0)} | ${item.elapsed||0}s</div>
-      </div>
-      <div class="item-actions">
-        <button class="btn-icon" onclick="redownload('${esc(item.url)}')" title="ดาวน์โหลดซ้ำ">🔁</button>
-      </div>
-    </div>`).join('');
-}
-
-async function clearHistory(){
-  if(!confirm('ล้างประวัติทั้งหมด?')) return;
-  await fetch('/api/history',{method:'DELETE'});
-  loadHistory(); toast('ล้างประวัติแล้ว');
-}
-
-function redownload(url){
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach((b,i)=>{if(i===0) b.classList.add('active'); else b.classList.remove('active');});
-  document.getElementById('panel-download').classList.add('active');
-  document.getElementById('dlUrl').value=url;
-  fetchInfo();
-}
-
-// ═══════════════════════════════════════════
-//  สถิติ
-// ═══════════════════════════════════════════
-async function loadStats(){
-  const s = await (await fetch('/api/stats')).json();
-  document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card"><div class="stat-card-val gr">${s.total_downloads}</div><div class="stat-card-label">ดาวน์โหลดทั้งหมด</div></div>
-    <div class="stat-card"><div class="stat-card-val rd">${s.failed}</div><div class="stat-card-label">ล้มเหลว</div></div>
-    <div class="stat-card"><div class="stat-card-val cy">${s.total_gb}</div><div class="stat-card-label">ข้อมูลรวม</div></div>
-    <div class="stat-card"><div class="stat-card-val mg">${s.avg_speed}</div><div class="stat-card-label">ความเร็วเฉลี่ย</div></div>
-    <div class="stat-card"><div class="stat-card-val cy">${s.first_use||'-'}</div><div class="stat-card-label">ใช้งานครั้งแรก</div></div>
-  `;
-  setTimeout(()=>{
-    document.getElementById('rateFill').style.width = s.success_rate+'%';
-    document.getElementById('rateLabel').textContent = `อัตราความสำเร็จ: ${s.success_rate}%`;
-  },100);
-}
-
-// ═══════════════════════════════════════════
-//  การตั้งค่า
-// ═══════════════════════════════════════════
-async function loadSettings(){
-  const cfg = await (await fetch('/api/config')).json();
-  cfgCache = cfg;
-  document.getElementById('settingsGrid').innerHTML = `
-    ${sText('โฟลเดอร์บันทึก','output_dir',cfg.output_dir)}
-    ${sSel('รูปแบบวิดีโอ','ext',['mp4','mkv','webm'],cfg.ext)}
-    ${sSel('ความละเอียด','resolution',['best','2160','1440','1080','720','480','360'],cfg.resolution)}
-    ${sSel('รูปแบบเสียง','audio_format',['mp3','m4a','wav','opus'],cfg.audio_format)}
-    ${sText('ภาษาซับไตเติล','sub_langs',cfg.sub_langs,'เช่น th,en')}
-    ${sText('จำกัดความเร็ว (เช่น 2M)','speed_limit',cfg.speed_limit,'')}
-    ${sToggle('เฉพาะเสียง','audio_only',cfg.audio_only)}
-    ${sToggle('ซับไตเติล','subtitles',cfg.subtitles)}
-    ${sToggle('บันทึกภาพปก','thumbnail',cfg.thumbnail)}
-    ${sToggle('รองรับเพลย์ลิสต์','playlist',cfg.playlist)}
-    ${sToggle('โหลดซ้ำอัตโนมัติ','auto_retry',cfg.auto_retry)}
-    <div style="grid-column:1/-1;font-family:'Noto Sans Thai';font-size:.72rem;color:var(--cy);padding:4px 0;border-top:1px solid #1a3a55;margin-top:4px">🔔 แจ้งเตือน Webhook</div>
-    ${sSel('ประเภท Webhook','webhook_type',['none','discord','line','telegram'],cfg.webhook_type)}
-    ${sText('URL / Token','webhook_url',cfg.webhook_url,'Discord Webhook URL หรือ LINE Token หรือ BotToken|ChatID')}
-  `;
-}
-
-function sText(label,key,val,ph=''){
-  return `<div class="setting-row">
-    <div class="setting-label">${label}</div>
-    <div class="setting-ctrl">
-      <input class="url-input" style="min-width:160px;padding:6px 10px;font-size:.75rem"
-        id="cfg_${key}" value="${esc(val||'')}" placeholder="${ph}">
-    </div></div>`;
-}
-function sSel(label,key,opts,val){
-  return `<div class="setting-row">
-    <div class="setting-label">${label}</div>
-    <div class="setting-ctrl">
-      <select class="select-box" id="cfg_${key}">
-        ${opts.map(o=>`<option value="${o}" ${o==val?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div></div>`;
-}
-function sToggle(label,key,val){
-  return `<div class="setting-row">
-    <div class="setting-label">${label}</div>
-    <div class="setting-ctrl">
-      <div class="toggle ${val?'on':''}" id="cfg_${key}" onclick="this.classList.toggle('on')"></div>
-    </div></div>`;
-}
-
-async function saveSettings(){
-  const cfg = {...cfgCache};
-  ['output_dir','ext','resolution','audio_format','sub_langs','speed_limit','webhook_type','webhook_url'].forEach(k=>{
-    const el = document.getElementById('cfg_'+k);
-    if(el) cfg[k] = el.tagName==='SELECT' ? el.value : el.value;
-  });
-  ['audio_only','subtitles','thumbnail','playlist','auto_retry'].forEach(k=>{
-    const el = document.getElementById('cfg_'+k);
-    if(el) cfg[k] = el.classList.contains('on');
-  });
-  await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
-  toast('บันทึกการตั้งค่าแล้ว ✔','suc');
-}
-
-// ═══════════════════════════════════════════
-//  ยูทิลิตี
-// ═══════════════════════════════════════════
-// ═══════════════════════════════════════════
-//  yt-dlp อัปเดต + ดิสก์
-// ═══════════════════════════════════════════
-async function loadYtdlpVersion(){
-  try {
-    const r = await (await fetch('/api/ytdlp-version')).json();
-    const el = document.getElementById('ytdlpVer');
-    if(el) el.textContent = `เวอร์ชัน: ${r.version}`;
-  } catch(e){}
-}
-
-async function updateYtdlp(){
-  const btn = document.getElementById('btnUpdate');
-  const statusEl = document.getElementById('updateStatus');
-  btn.disabled = true;
-  if(statusEl){ statusEl.textContent='⏳ กำลังอัปเดต...'; statusEl.style.color='var(--cy)'; }
-  await fetch('/api/update-ytdlp',{method:'POST'});
-  // ผล update จะมาผ่าน SSE progress (ytdlp_updated event)
-  // เปิด SSE listener ชั่วคราว
-  const es = new EventSource('/api/progress');
-  es.onmessage = e=>{
-    const d = JSON.parse(e.data);
-    if(d.type==='ytdlp_updated'){
-      es.close();
-      if(statusEl){ statusEl.textContent=d.msg; statusEl.style.color=d.ok?'var(--gr)':'var(--rd)'; }
-      btn.disabled=false;
-      if(d.ok){ loadYtdlpVersion(); toast(d.msg,'suc'); } else { toast('อัปเดตล้มเหลว','err'); }
-    }
-  };
-}
-
-async function loadDiskInfo(){
-  try {
-    const d = await (await fetch('/api/diskspace')).json();
-    const el = document.getElementById('diskInfo');
-    const bar = document.getElementById('diskBar');
-    if(el) el.textContent = `ว่าง ${d.free_str} / ทั้งหมด ${d.total_str} (ใช้ไป ${d.pct_used}%)`;
-    if(bar){
-      bar.style.width = d.pct_used+'%';
-      bar.style.background = d.pct_used>=90
-        ? 'linear-gradient(90deg,var(--rd),#ff6600)'
-        : d.pct_used>=75
-          ? 'linear-gradient(90deg,var(--yl),var(--cy))'
-          : 'linear-gradient(90deg,var(--gr),var(--cy))';
-    }
-  } catch(e){}
 }
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
