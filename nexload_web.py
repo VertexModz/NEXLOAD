@@ -106,7 +106,7 @@ def safe_fn(title, max_bytes=180):
     return title
 
 def res_to_format(res):
-    return "bestvideo+bestaudio/best"
+    return "bestvideo+bestaudio/bestvideo/bestaudio/best"
 
 # ══════════════════════════════════════════════
 #  Webhook แจ้งเตือน
@@ -169,6 +169,7 @@ def build_opts(cfg, out_tmpl, hooks=None):
     else:
         opts["format"] = res_to_format(cfg["resolution"])
         opts["merge_output_format"] = "mp4"
+        opts["postprocessors"] = [{"key":"FFmpegVideoConvertor","preferedformat":"mp4"}]
     if cfg["subtitles"]:
         opts["writesubtitles"] = True; opts["writeautomaticsub"] = True
         opts["subtitleslangs"] = cfg["sub_langs"].split(",")
