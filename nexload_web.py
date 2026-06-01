@@ -106,8 +106,7 @@ def safe_fn(title, max_bytes=180):
     return title
 
 def res_to_format(res):
-    if res == "best": return "bestvideo+bestaudio/best"
-    return (f"bestvideo[height<={res}]+bestaudio/best[height<={res}]/best")
+    return "bestvideo+bestaudio/best"
 
 # ══════════════════════════════════════════════
 #  Webhook แจ้งเตือน
@@ -158,7 +157,9 @@ def check_disk_space(folder, need_bytes=0):
 
 def build_opts(cfg, out_tmpl, hooks=None):
     opts = {"outtmpl": out_tmpl, "quiet": True, "no_warnings": True,
-            "noplaylist": not cfg["playlist"]}
+            "noplaylist": not cfg["playlist"],
+            "extractor_args": {"youtube": {"player_client": ["web"]}},
+            "http_headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}}
     if hooks: opts["progress_hooks"] = hooks
     if cfg["audio_only"]:
         opts["format"] = "bestaudio/best"
@@ -167,8 +168,7 @@ def build_opts(cfg, out_tmpl, hooks=None):
                                     "preferredquality":cfg["audio_quality"]}]
     else:
         opts["format"] = res_to_format(cfg["resolution"])
-        opts["merge_output_format"] = cfg["ext"]
-        opts["postprocessors"] = [{"key":"FFmpegVideoConvertor","preferedformat":cfg["ext"]}]
+        opts["merge_output_format"] = "mp4"
     if cfg["subtitles"]:
         opts["writesubtitles"] = True; opts["writeautomaticsub"] = True
         opts["subtitleslangs"] = cfg["sub_langs"].split(",")
@@ -304,7 +304,9 @@ def api_info():
     if not url: return jsonify({"error":"ต้องระบุ URL"}), 400
     cfg = load_cfg()
     try:
-        opts = {"quiet":True,"no_warnings":True,"noplaylist":True}
+        opts = {"quiet":True,"no_warnings":True,"noplaylist":True,
+                "extractor_args": {"youtube": {"player_client": ["web"]}},
+                "http_headers": {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"}}
         if cfg.get("proxy"): opts["proxy"] = cfg["proxy"]
         if os.path.exists("cookies.txt"): opts["cookiefile"] = "cookies.txt"
         with yt_dlp.YoutubeDL(opts) as ydl:
