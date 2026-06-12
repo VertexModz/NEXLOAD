@@ -96,23 +96,21 @@
 <a href="admin.html" class="admin-link">⚙ แอดมิน</a>
 
 <script>
-// ── Default questions (ใช้ถ้ายังไม่มีข้อมูลใน storage) ──
-const DEFAULT_QUESTIONS = [];
-
-// ── Load questions from localStorage ──
-function loadQuestions() {
-  try {
-    const saved = localStorage.getItem('lq_questions');
-    if (saved) {
-      const arr = JSON.parse(saved);
-      if (Array.isArray(arr) && arr.length > 0) return arr;
-    }
-  } catch(e) {}
-  return DEFAULT_QUESTIONS;
-}
-
-let questions = loadQuestions();
+let questions = [];
 let current = 0, score = 0, answered = false;
+
+// ── Load questions from server API ──
+async function loadQuestions() {
+  try {
+    const res = await fetch('/api/questions');
+    if (!res.ok) throw new Error('fetch failed');
+    const arr = await res.json();
+    if (Array.isArray(arr)) return arr;
+  } catch(e) {
+    console.warn('โหลดคำถามไม่ได้:', e);
+  }
+  return [];
+}
 
 // Stars
 (function(){
@@ -217,8 +215,8 @@ function showResult() {
   for(let i=0;i<12;i++) setTimeout(()=>spawnHearts(true),i*120);
 }
 
-function restart() {
-  questions=loadQuestions(); current=0; score=0; answered=false;
+async function restart() {
+  questions = await loadQuestions(); current=0; score=0; answered=false;
   document.getElementById('result-screen').className='card';
   document.getElementById('question-card').style.display='';
   render();
@@ -235,7 +233,11 @@ function spawnHearts(burst=false) {
   }
 }
 
-render();
+// ── Init ──
+(async () => {
+  questions = await loadQuestions();
+  render();
+})();
 </script>
 </body>
 </html>

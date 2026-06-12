@@ -313,10 +313,11 @@ function updateDots() {
     d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
   }
 }
-function checkPin() {
+async function checkPin() {
   if (pinBuffer === ADMIN_PIN) {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-screen').style.display = 'block';
+    questions = await load();
     renderAll();
   } else {
     for (let i=0;i<6;i++) document.getElementById('dot'+i).className='pin-dot error';
@@ -326,13 +327,29 @@ function checkPin() {
 }
 function logout() { location.reload(); }
 
-// ── Data ──
-const STORAGE_KEY = 'lq_questions';
-function load() {
-  try { const d=localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : getDefaults(); }
-  catch(e){ return getDefaults(); }
+// ── Data (server API) ──
+async function load() {
+  try {
+    const res = await fetch('/api/questions');
+    if (!res.ok) throw new Error('fetch failed');
+    const arr = await res.json();
+    if (Array.isArray(arr)) return arr;
+  } catch(e) { console.warn('โหลดคำถามไม่ได้:', e); }
+  return getDefaults();
 }
-function save(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+async function save(arr) {
+  try {
+    const res = await fetch('/api/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(arr)
+    });
+    if (!res.ok) throw new Error('save failed');
+  } catch(e) {
+    toast('❌ บันทึกไม่ได้ ตรวจสอบ server');
+    console.error(e);
+  }
+}
 function getDefaults() {
   return [
     { type:"yesno", emoji:"🌙", text:"ถ้าดึกมากแล้วและหิวข้าว จะตื่นมาทำข้าวให้อีกคนไหม?", correct:"yes", feedback:{ yes:"โอ้โห! ดูแลกันดีมากเลย 🥺💕", no:"ก็ได้นะ... แต่ถ้าได้รับอาหารดึกๆ มันพิเศษมากเลย 🍜" } },
@@ -342,7 +359,7 @@ function getDefaults() {
   ];
 }
 
-let questions = load();
+let questions = [];
 let editIndex = -1;
 let currentType = 'yesno';
 let choiceCount = 0;
@@ -420,7 +437,7 @@ function removeChoice(id) {
 }
 
 // ── Save ──
-function saveQuestion() {
+async function saveQuestion() {
   const emoji = document.getElementById('f-emoji').value.trim();
   const text  = document.getElementById('f-text').value.trim();
   if (!text) { toast('กรุณากรอกคำถามด้วยนะ 🥺'); return; }
@@ -460,7 +477,7 @@ function saveQuestion() {
     toast('✅ เพิ่มคำถามแล้ว!');
     clearForm();
   }
-  save(questions);
+  await save(questions);
   renderAll();
 }
 
@@ -513,18 +530,18 @@ function cancelEdit() {
 }
 
 // ── Delete ──
-function deleteQ(i) {
+async function deleteQ(i) {
   showModal('ลบคำถาม?', `"${questions[i].text.slice(0,40)}..."`, ()=>{
     questions.splice(i,1);
-    save(questions); renderAll();
+    await save(questions); renderAll();
     toast('🗑 ลบแล้ว');
   });
 }
 
-function confirmClearAll() {
+async function confirmClearAll() {
   showModal('ล้างทั้งหมด?', 'จะลบคำถามทั้งหมด และโหลดคำถามตัวอย่างใหม่', ()=>{
     questions = getDefaults();
-    save(questions); renderAll();
+    await save(questions); renderAll();
     toast('🔄 รีเซ็ตแล้ว');
   });
 }
@@ -545,7 +562,7 @@ let dragIdx = null;
 function dragStart(i){ dragIdx=i; document.getElementById('qi-'+i).classList.add('dragging'); }
 function dragOver(e,i){ e.preventDefault(); document.getElementById('qi-'+i).classList.add('drag-over'); }
 function dragLeave(i){ document.getElementById('qi-'+i).classList.remove('drag-over'); }
-function dragDrop(e,i){
+async function dragDrop(e,i){
   e.preventDefault();
   document.getElementById('qi-'+i).classList.remove('drag-over');
   if(dragIdx===null||dragIdx===i) return;
@@ -553,7 +570,7 @@ function dragDrop(e,i){
   const [moved]=arr.splice(dragIdx,1);
   arr.splice(i,0,moved);
   questions=arr; dragIdx=null;
-  save(questions); renderAll();
+  await save(questions); renderAll();
 }
 
 // ── Toast ──
