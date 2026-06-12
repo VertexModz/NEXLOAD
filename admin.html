@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚙️ แอดมิน — Love Quiz</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Mitr:wght@300;400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0a0618;--panel:#150930;--card:#1e0f3a;--border:#3d1f6e;
+    --pink:#ff6eb4;--purple:#c084fc;--lavender:#d4a8ff;
+    --text:#f0e6ff;--muted:#9d7ec9;--green:#4ade80;--red:#f87171;
+  }
+  html,body{min-height:100vh;background:var(--bg);font-family:'Sarabun',sans-serif;color:var(--text)}
+  /* ── LOGIN ── */
+  #login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+  }
+  .login-box{
+    background:var(--card);border:1px solid var(--border);border-radius:24px;
+    padding:48px 36px;width:100%;max-width:360px;text-align:center;
+    box-shadow:0 0 60px #c084fc22,0 8px 32px #00000066;
+    animation:pop .4s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes pop{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+  .login-icon{font-size:3.5rem;margin-bottom:16px}
+  .login-title{font-family:'Mitr',sans-serif;font-size:1.5rem;color:var(--pink);margin-bottom:6px}
+  .login-sub{font-size:.85rem;color:var(--muted);margin-bottom:28px}
+  .pin-row{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+  .pin-dot{
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--border);background:transparent;
+    transition:all .2s;
+  }
+  .pin-dot.filled{background:var(--purple);border-color:var(--purple);box-shadow:0 0 8px #c084fc88}
+  .pin-dot.error{background:var(--red);border-color:var(--red)}
+  .numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto}
+  .num-btn{
+    padding:16px;background:var(--panel);border:1.5px solid var(--border);
+    border-radius:14px;color:var(--text);font-size:1.2rem;font-family:'Mitr',sans-serif;
+    cursor:pointer;transition:all .15s;user-select:none;
+  }
+  .num-btn:hover{border-color:var(--purple);background:#2d1157;transform:scale(1.04)}
+  .num-btn:active{transform:scale(.97)}
+  .num-btn.del{font-size:1rem;color:var(--muted)}
+  #login-msg{margin-top:14px;font-size:.85rem;color:var(--red);min-height:20px}
+
+  /* ── ADMIN LAYOUT ── */
+  #admin-screen{display:none;min-height:100vh}
+  .topbar{
+    background:var(--panel);border-bottom:1px solid var(--border);
+    padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:50;
+  }
+  .topbar-title{font-family:'Mitr',sans-serif;font-size:1.1rem;color:var(--pink)}
+  .topbar-actions{display:flex;gap:10px;align-items:center}
+  .btn{padding:9px 18px;border-radius:10px;border:none;font-family:'Sarabun',sans-serif;font-size:.9rem;cursor:pointer;transition:all .2s}
+  .btn-primary{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;box-shadow:0 2px 12px #c084fc33}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px #c084fc44}
+  .btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
+  .btn-ghost:hover{border-color:var(--purple);color:var(--lavender)}
+  .btn-danger{background:transparent;border:1.5px solid #f8717155;color:var(--red)}
+  .btn-danger:hover{background:#f8717122}
+  .btn-sm{padding:6px 12px;font-size:.82rem;border-radius:8px}
+
+  .admin-body{max-width:720px;margin:0 auto;padding:28px 16px 60px}
+
+  /* Stats */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 16px;text-align:center}
+  .stat-num{font-family:'Mitr',sans-serif;font-size:1.8rem;color:var(--purple);line-height:1}
+  .stat-label{font-size:.78rem;color:var(--muted);margin-top:4px}
+
+  /* Question list */
+  .section-title{font-family:'Mitr',sans-serif;font-size:1rem;color:var(--lavender);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+  .q-list{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+  .q-item{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:16px 18px;display:flex;gap:14px;align-items:flex-start;
+    transition:border-color .2s;
+  }
+  .q-item:hover{border-color:var(--purple)}
+  .q-item-drag{cursor:grab;color:var(--border);font-size:1.1rem;padding-top:2px;flex-shrink:0}
+  .q-item-body{flex:1;min-width:0}
+  .q-item-meta{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .type-badge{
+    font-size:.7rem;padding:3px 10px;border-radius:99px;font-weight:600;letter-spacing:.06em;
+  }
+  .badge-yesno{background:#c084fc22;color:var(--purple);border:1px solid #c084fc55}
+  .badge-choice{background:#ff6eb422;color:var(--pink);border:1px solid #ff6eb455}
+  .badge-text{background:#4ade8022;color:var(--green);border:1px solid #4ade8055}
+  .q-item-emoji{font-size:1rem}
+  .q-item-text{font-size:.92rem;color:var(--lavender);line-height:1.5;word-break:break-word}
+  .q-item-actions{display:flex;gap:6px;flex-shrink:0;margin-top:2px}
+
+  /* Add/Edit form */
+  .form-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;margin-bottom:28px}
+  .form-title{font-family:'Mitr',sans-serif;font-size:1rem;color:var(--pink);margin-bottom:20px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:7px;letter-spacing:.04em}
+  .field input,.field textarea,.field select{
+    width:100%;background:#0f0720;border:1.5px solid var(--border);border-radius:12px;
+    padding:11px 14px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:.95rem;
+    outline:none;transition:border-color .2s;
+  }
+  .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--purple)}
+  .field textarea{resize:vertical;min-height:70px}
+  .field select option{background:var(--card)}
+  .type-selector{display:flex;gap:8px;flex-wrap:wrap}
+  .type-opt{
+    flex:1;min-width:80px;padding:10px 6px;text-align:center;
+    border:1.5px solid var(--border);border-radius:10px;cursor:pointer;
+    font-size:.85rem;transition:all .2s;user-select:none;color:var(--muted);
+  }
+  .type-opt:hover{border-color:var(--purple);color:var(--lavender)}
+  .type-opt.active{border-color:var(--purple);background:#2d1157;color:var(--text)}
+  .choices-list{display:flex;flex-direction:column;gap:8px}
+  .choice-row{display:flex;gap:8px;align-items:center}
+  .choice-row input{flex:1}
+  .choice-row .del-choice{background:transparent;border:none;color:var(--red);font-size:1.1rem;cursor:pointer;padding:4px;opacity:.6}
+  .choice-row .del-choice:hover{opacity:1}
+  .correct-hint{font-size:.78rem;color:var(--muted);margin-top:4px}
+  .form-actions{display:flex;gap:10px;margin-top:8px;flex-wrap:wrap}
+
+  /* Toast */
+  #toast{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:#2d1157;border:1px solid var(--purple);color:var(--lavender);
+    padding:12px 24px;border-radius:99px;font-size:.9rem;
+    opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap;
+  }
+  #toast.show{opacity:1}
+
+  /* Drag ghost */
+  .q-item.dragging{opacity:.4}
+  .q-item.drag-over{border-color:var(--purple);background:#2d115733}
+
+  /* Empty */
+  .empty-list{text-align:center;padding:32px 0;color:var(--muted);font-size:.9rem;line-height:2}
+  
+  /* Confirm modal */
+  .modal-bg{position:fixed;inset:0;background:#00000088;z-index:200;display:flex;align-items:center;justify-content:center;padding:24px}
+  .modal-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:32px 28px;max-width:340px;width:100%;text-align:center;animation:pop .3s ease}
+  .modal-title{font-family:'Mitr',sans-serif;font-size:1.1rem;color:var(--pink);margin-bottom:10px}
+  .modal-desc{font-size:.9rem;color:var(--muted);line-height:1.7;margin-bottom:24px}
+  .modal-actions{display:flex;gap:10px}
+  .modal-actions .btn{flex:1}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-icon">🔐</div>
+    <div class="login-title">แผงแอดมิน</div>
+    <div class="login-sub">กรอกรหัส 6 หลักเพื่อเข้าสู่ระบบ</div>
+    <div class="pin-row" id="pin-row">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+      <div class="pin-dot" id="dot4"></div>
+      <div class="pin-dot" id="dot5"></div>
+    </div>
+    <div class="numpad" id="numpad">
+      <button class="num-btn" onclick="numPress('1')">1</button>
+      <button class="num-btn" onclick="numPress('2')">2</button>
+      <button class="num-btn" onclick="numPress('3')">3</button>
+      <button class="num-btn" onclick="numPress('4')">4</button>
+      <button class="num-btn" onclick="numPress('5')">5</button>
+      <button class="num-btn" onclick="numPress('6')">6</button>
+      <button class="num-btn" onclick="numPress('7')">7</button>
+      <button class="num-btn" onclick="numPress('8')">8</button>
+      <button class="num-btn" onclick="numPress('9')">9</button>
+      <button class="num-btn del" onclick="numClear()">✕</button>
+      <button class="num-btn" onclick="numPress('0')">0</button>
+      <button class="num-btn del" onclick="numBack()">⌫</button>
+    </div>
+    <div id="login-msg"></div>
+  </div>
+</div>
+
+<!-- ══════════ ADMIN PANEL ══════════ -->
+<div id="admin-screen">
+  <div class="topbar">
+    <div class="topbar-title">💕 Love Quiz — แอดมิน</div>
+    <div class="topbar-actions">
+      <a href="index.html"><button class="btn btn-ghost btn-sm">ดูหน้าหลัก</button></a>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">คำถามทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-yesno">0</div><div class="stat-label">ใช่/ไม่ใช่</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-choice">0</div><div class="stat-label">ตัวเลือก & เขียน</div></div>
+    </div>
+
+    <!-- Add form -->
+    <div class="form-card" id="form-card">
+      <div class="form-title" id="form-title">➕ เพิ่มคำถามใหม่</div>
+
+      <div class="field">
+        <label>ประเภทคำถาม</label>
+        <div class="type-selector">
+          <div class="type-opt active" data-type="yesno" onclick="selectType('yesno')">✅ ใช่/ไม่ใช่</div>
+          <div class="type-opt" data-type="choice" onclick="selectType('choice')">🔘 ตัวเลือก</div>
+          <div class="type-opt" data-type="text" onclick="selectType('text')">✏️ เขียนตอบ</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Emoji (ไม่บังคับ)</label>
+        <input type="text" id="f-emoji" placeholder="💕" maxlength="4" style="width:80px">
+      </div>
+
+      <div class="field">
+        <label>คำถาม</label>
+        <textarea id="f-text" placeholder="พิมพ์คำถามที่นี่..."></textarea>
+      </div>
+
+      <!-- yesno fields -->
+      <div id="fields-yesno">
+        <div class="field">
+          <label>คำตอบที่ถือว่าถูก (ไม่บังคับ)</label>
+          <select id="f-correct-yn">
+            <option value="">ไม่มีถูก/ผิด</option>
+            <option value="yes">ใช่</option>
+            <option value="no">ไม่ใช่</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Feedback เมื่อตอบ "ใช่"</label>
+          <input type="text" id="f-fb-yes" placeholder="เช่น น่ารักมากเลย 💕">
+        </div>
+        <div class="field">
+          <label>Feedback เมื่อตอบ "ไม่ใช่"</label>
+          <input type="text" id="f-fb-no" placeholder="เช่น ก็โอเคนะ...">
+        </div>
+      </div>
+
+      <!-- choice fields -->
+      <div id="fields-choice" style="display:none">
+        <div class="field">
+          <label>ตัวเลือก (อย่างน้อย 2 ข้อ)</label>
+          <div class="choices-list" id="choices-list"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="addChoiceRow()">+ เพิ่มตัวเลือก</button>
+          <div class="correct-hint">ถ้าต้องการให้มีคำตอบที่ถูก: พิมพ์ [✓] นำหน้าตัวเลือกนั้น</div>
+        </div>
+        <div class="field">
+          <label>Feedback (แสดงทุกตัวเลือก)</label>
+          <input type="text" id="f-fb-choice" placeholder="เช่น ทุกคำตอบล้วนมีความหมาย 💜">
+        </div>
+      </div>
+
+      <!-- text fields -->
+      <div id="fields-text" style="display:none">
+        <div class="field">
+          <label>Feedback หลังส่งคำตอบ</label>
+          <input type="text" id="f-fb-text" placeholder="เช่น ขอบคุณที่บอกนะ 🥰">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="saveQuestion()">💾 บันทึกคำถาม</button>
+        <button class="btn btn-ghost" id="cancel-edit-btn" style="display:none" onclick="cancelEdit()">ยกเลิก</button>
+      </div>
+    </div>
+
+    <!-- Question list -->
+    <div class="section-title">
+      <span>📋 รายการคำถามทั้งหมด</span>
+      <button class="btn btn-danger btn-sm" onclick="confirmClearAll()">🗑 ล้างทั้งหมด</button>
+    </div>
+    <div class="q-list" id="q-list"></div>
+  </div>
+</div>
+
+<!-- Confirm modal -->
+<div class="modal-bg" id="confirm-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-title" id="confirm-title">ยืนยัน?</div>
+    <div class="modal-desc" id="confirm-desc">คุณแน่ใจไหม?</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Auth ──
+const ADMIN_PIN = '221051';
+let pinBuffer = '';
+
+function numPress(n) {
+  if (pinBuffer.length >= 6) return;
+  pinBuffer += n;
+  updateDots();
+  if (pinBuffer.length === 6) setTimeout(checkPin, 150);
+}
+function numBack() { pinBuffer = pinBuffer.slice(0,-1); updateDots(); }
+function numClear() { pinBuffer = ''; updateDots(); }
+function updateDots() {
+  for (let i=0;i<6;i++) {
+    const d = document.getElementById('dot'+i);
+    d.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+  }
+}
+function checkPin() {
+  if (pinBuffer === ADMIN_PIN) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    renderAll();
+  } else {
+    for (let i=0;i<6;i++) document.getElementById('dot'+i).className='pin-dot error';
+    document.getElementById('login-msg').textContent = 'รหัสไม่ถูกต้อง ลองอีกครั้ง';
+    setTimeout(()=>{ pinBuffer=''; updateDots(); document.getElementById('login-msg').textContent=''; }, 900);
+  }
+}
+function logout() { location.reload(); }
+
+// ── Data ──
+const STORAGE_KEY = 'lq_questions';
+function load() {
+  try { const d=localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : getDefaults(); }
+  catch(e){ return getDefaults(); }
+}
+function save(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+function getDefaults() {
+  return [
+    { type:"yesno", emoji:"🌙", text:"ถ้าดึกมากแล้วและหิวข้าว จะตื่นมาทำข้าวให้อีกคนไหม?", correct:"yes", feedback:{ yes:"โอ้โห! ดูแลกันดีมากเลย 🥺💕", no:"ก็ได้นะ... แต่ถ้าได้รับอาหารดึกๆ มันพิเศษมากเลย 🍜" } },
+    { type:"choice", emoji:"🎬", text:"ถ้าจะดูหนังด้วยกันคืนนี้ อยากดูแนวไหนมากที่สุด?", choices:["หนังรักโรแมนติก 🌹","หนังตลก ฮาๆ 😂","ดูซีรีส์เกาหลีด้วยกัน 🇰🇷","แอนิเมชันน่ารักๆ 🐰"], correct:null, feedback:"ไม่ว่าจะเลือกอะไร ขอแค่ได้นอนดูด้วยกันก็พอ 🛋️💕" },
+    { type:"text", emoji:"💌", text:"บอกสิ่งที่รักในตัวอีกคนมาสักอย่างได้เลย~", feedback:"ขอบคุณที่บอกนะ มันทำให้รู้สึกอบอุ่นมากเลย 🥰" },
+    { type:"yesno", emoji:"🌧️", text:"วันที่ฝนตก ถ้าไม่มีร่ม จะแบ่งร่มให้อีกคน แม้ตัวเองจะเปียก?", correct:"yes", feedback:{ yes:"นั่นคือความรักแบบ k-drama จริงๆ 💕🌂", no:"ซื่อสัตย์ดี! แต่เปียกด้วยกันก็ไม่เป็นไร 😄" } }
+  ];
+}
+
+let questions = load();
+let editIndex = -1;
+let currentType = 'yesno';
+let choiceCount = 0;
+
+// ── Render ──
+function renderAll() {
+  updateStats();
+  renderList();
+}
+
+function updateStats() {
+  const yn = questions.filter(q=>q.type==='yesno').length;
+  const ch = questions.filter(q=>q.type==='choice'||q.type==='text').length;
+  document.getElementById('stat-total').textContent = questions.length;
+  document.getElementById('stat-yesno').textContent = yn;
+  document.getElementById('stat-choice').textContent = ch;
+}
+
+function renderList() {
+  const list = document.getElementById('q-list');
+  if (!questions.length) {
+    list.innerHTML = '<div class="empty-list">ยังไม่มีคำถาม<br>เพิ่มคำถามแรกได้เลย! 💕</div>';
+    return;
+  }
+  list.innerHTML = questions.map((q,i) => {
+    const badge = q.type==='yesno'
+      ? '<span class="type-badge badge-yesno">ใช่/ไม่ใช่</span>'
+      : q.type==='choice'
+      ? '<span class="type-badge badge-choice">ตัวเลือก</span>'
+      : '<span class="type-badge badge-text">เขียนตอบ</span>';
+    return `
+    <div class="q-item" id="qi-${i}" draggable="true"
+         ondragstart="dragStart(${i})" ondragover="dragOver(event,${i})" ondrop="dragDrop(event,${i})" ondragleave="dragLeave(${i})">
+      <div class="q-item-drag">⠿</div>
+      <div class="q-item-body">
+        <div class="q-item-meta">${badge}<span class="q-item-emoji">${q.emoji||''}</span></div>
+        <div class="q-item-text">${escHtml(q.text)}</div>
+      </div>
+      <div class="q-item-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editQ(${i})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteQ(${i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Type selector ──
+function selectType(t) {
+  currentType = t;
+  document.querySelectorAll('.type-opt').forEach(el=>{
+    el.classList.toggle('active', el.dataset.type===t);
+  });
+  document.getElementById('fields-yesno').style.display = t==='yesno'?'':'none';
+  document.getElementById('fields-choice').style.display = t==='choice'?'':'none';
+  document.getElementById('fields-text').style.display   = t==='text'?'':'none';
+  if(t==='choice' && document.getElementById('choices-list').children.length===0) {
+    addChoiceRow(); addChoiceRow();
+  }
+}
+
+function addChoiceRow(val='') {
+  const list = document.getElementById('choices-list');
+  const idx = choiceCount++;
+  const row = document.createElement('div');
+  row.className='choice-row'; row.id='cr-'+idx;
+  row.innerHTML=`<input type="text" placeholder="ตัวเลือก ${list.children.length+1}" value="${escHtml(val)}"><button class="del-choice" onclick="removeChoice('cr-${idx}')">✕</button>`;
+  list.appendChild(row);
+}
+
+function removeChoice(id) {
+  const el=document.getElementById(id);
+  if(el && document.getElementById('choices-list').children.length > 2) el.remove();
+}
+
+// ── Save ──
+function saveQuestion() {
+  const emoji = document.getElementById('f-emoji').value.trim();
+  const text  = document.getElementById('f-text').value.trim();
+  if (!text) { toast('กรุณากรอกคำถามด้วยนะ 🥺'); return; }
+
+  let q = { type: currentType, emoji, text };
+
+  if (currentType==='yesno') {
+    const yn = document.getElementById('f-correct-yn').value;
+    q.correct = yn || null;
+    q.feedback = {
+      yes: document.getElementById('f-fb-yes').value.trim() || 'ใช่เลย! 💕',
+      no:  document.getElementById('f-fb-no').value.trim()  || 'โอเค~ 🌸'
+    };
+  } else if (currentType==='choice') {
+    const rows = document.getElementById('choices-list').querySelectorAll('.choice-row input');
+    let choices=[], correct=null;
+    rows.forEach((inp,i)=>{
+      let v=inp.value.trim();
+      if(!v) return;
+      if(v.startsWith('[✓]')){ correct=choices.length; v=v.slice(3).trim(); }
+      choices.push(v);
+    });
+    if(choices.length<2){ toast('ต้องมีตัวเลือกอย่างน้อย 2 ข้อนะ'); return; }
+    q.choices = choices;
+    q.correct = correct;
+    q.feedback = document.getElementById('f-fb-choice').value.trim() || 'ขอบคุณที่ตอบนะ 💜';
+  } else {
+    q.feedback = document.getElementById('f-fb-text').value.trim() || 'ขอบคุณที่บอกนะ 🥰';
+  }
+
+  if (editIndex >= 0) {
+    questions[editIndex] = q;
+    toast('✅ แก้ไขคำถามแล้ว!');
+    cancelEdit();
+  } else {
+    questions.push(q);
+    toast('✅ เพิ่มคำถามแล้ว!');
+    clearForm();
+  }
+  save(questions);
+  renderAll();
+}
+
+function clearForm() {
+  document.getElementById('f-emoji').value='';
+  document.getElementById('f-text').value='';
+  document.getElementById('f-correct-yn').value='';
+  document.getElementById('f-fb-yes').value='';
+  document.getElementById('f-fb-no').value='';
+  document.getElementById('f-fb-choice').value='';
+  document.getElementById('f-fb-text').value='';
+  document.getElementById('choices-list').innerHTML='';
+  choiceCount=0;
+  selectType('yesno');
+}
+
+// ── Edit ──
+function editQ(i) {
+  editIndex = i;
+  const q = questions[i];
+  document.getElementById('form-title').textContent = '✏️ แก้ไขคำถาม';
+  document.getElementById('cancel-edit-btn').style.display='';
+  document.getElementById('f-emoji').value = q.emoji||'';
+  document.getElementById('f-text').value  = q.text||'';
+  selectType(q.type);
+
+  if(q.type==='yesno'){
+    document.getElementById('f-correct-yn').value = q.correct||'';
+    const fb = q.feedback||{};
+    document.getElementById('f-fb-yes').value = typeof fb==='object' ? (fb.yes||'') : fb;
+    document.getElementById('f-fb-no').value  = typeof fb==='object' ? (fb.no||'')  : '';
+  } else if(q.type==='choice'){
+    document.getElementById('choices-list').innerHTML=''; choiceCount=0;
+    const correct=q.correct;
+    (q.choices||[]).forEach((c,i)=>{
+      addChoiceRow(correct===i ? '[✓] '+c : c);
+    });
+    document.getElementById('f-fb-choice').value = q.feedback||'';
+  } else {
+    document.getElementById('f-fb-text').value = q.feedback||'';
+  }
+  document.getElementById('form-card').scrollIntoView({behavior:'smooth'});
+}
+
+function cancelEdit() {
+  editIndex=-1;
+  document.getElementById('form-title').textContent='➕ เพิ่มคำถามใหม่';
+  document.getElementById('cancel-edit-btn').style.display='none';
+  clearForm();
+}
+
+// ── Delete ──
+function deleteQ(i) {
+  showModal('ลบคำถาม?', `"${questions[i].text.slice(0,40)}..."`, ()=>{
+    questions.splice(i,1);
+    save(questions); renderAll();
+    toast('🗑 ลบแล้ว');
+  });
+}
+
+function confirmClearAll() {
+  showModal('ล้างทั้งหมด?', 'จะลบคำถามทั้งหมด และโหลดคำถามตัวอย่างใหม่', ()=>{
+    questions = getDefaults();
+    save(questions); renderAll();
+    toast('🔄 รีเซ็ตแล้ว');
+  });
+}
+
+// ── Modal ──
+let modalCb = null;
+function showModal(title,desc,cb){
+  modalCb=cb;
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-desc').textContent=desc;
+  document.getElementById('confirm-modal').style.display='flex';
+  document.getElementById('confirm-ok-btn').onclick=()=>{ closeModal(); if(modalCb) modalCb(); };
+}
+function closeModal(){ document.getElementById('confirm-modal').style.display='none'; }
+
+// ── Drag to reorder ──
+let dragIdx = null;
+function dragStart(i){ dragIdx=i; document.getElementById('qi-'+i).classList.add('dragging'); }
+function dragOver(e,i){ e.preventDefault(); document.getElementById('qi-'+i).classList.add('drag-over'); }
+function dragLeave(i){ document.getElementById('qi-'+i).classList.remove('drag-over'); }
+function dragDrop(e,i){
+  e.preventDefault();
+  document.getElementById('qi-'+i).classList.remove('drag-over');
+  if(dragIdx===null||dragIdx===i) return;
+  const arr=[...questions];
+  const [moved]=arr.splice(dragIdx,1);
+  arr.splice(i,0,moved);
+  questions=arr; dragIdx=null;
+  save(questions); renderAll();
+}
+
+// ── Toast ──
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='show';
+  setTimeout(()=>el.className='',2200);
+}
+
+// ── Init (start at login) ──
+</script>
+</body>
+</html>
