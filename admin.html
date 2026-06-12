@@ -315,10 +315,13 @@ function updateDots() {
 }
 async function checkPin() {
   if (pinBuffer === ADMIN_PIN) {
+    // แสดงหน้า admin ก่อนเลย แล้วค่อย load ข้อมูล
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-screen').style.display = 'block';
-    questions = await load();
+    questions = getDefaults();
     renderAll();
+    // โหลดจาก server (ถ้าเปิดผ่าน server จริง)
+    load().then(arr => { questions = arr; renderAll(); }).catch(()=>{});
   } else {
     for (let i=0;i<6;i++) document.getElementById('dot'+i).className='pin-dot error';
     document.getElementById('login-msg').textContent = 'รหัสไม่ถูกต้อง ลองอีกครั้ง';
